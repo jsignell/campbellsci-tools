@@ -1,0 +1,57 @@
+NOTES for EC Broadmead data
+
+Each year has 2 directories:  
+   Flux - containd monthly 5 minute flux files concatenated from the datalogger
+   Daily_TS - contains daily 10Hz data files
+
+2006:  12/18- 12/31
+      monthly Flux files time stamp is UTC
+   daily TS files time stamp 5 EST - 5 UTC
+
+2007:  01/01 - 11/28
+  monthly Flux files time stamp is UTC
+   daily TS files time stamp 5 EST - 5 UTC
+ 
+ *  soil values begin in 10Hz files 06/2007
+ ** June flux file is divided in 2, pre and post soil
+     heat flux stations
+     Jun2007_flux_1.dat - flux data 6/01-6/05
+     Jun2007_flux_2.dat - flux data 6/05-6/30
+
+*** note:  the column order in the flux file changes 
+      in June when the soil heat flux stations are added
+
+2008:  06/13 - 11/02
+   monthly Flux files time stamp is EST
+   daily TS files time stamp 5 EST - 5 EST
+
+  * soil values are in the 10 Hz files
+
+2009:  06/11 - 10/03
+   monthly Flux files time stamp is UTC
+   daily TS files time stamp 5 UTC - 5 UTC
+
+ * sensor added - radiometer added to flux file, last 9 columns,
+    beginning 7/15
+     Jul2009_flux_1.dat - flux data 7/01-7/15
+     Jul2009_flux_2.dat - flux data 7/17-7/31
+     Jul2009_flux.dat - flux data for the entire month
+ * soil data removed from 10 Hz files    
+     TOA5_2009_07_15_0500.dat - soil data in file
+     TOA5_2009_07_15_1807.dat - soil data removed
+
+2010: 08/27 - 11/25
+   monthly Flux files time stamp is UTC
+   daily TS files time stamp 5 UTC - 5 UTC
+
+  * sensor added - 2 raingages added to flux file, last 2 columns, 
+        beginning on 8/27
+ ** additional directory, Daily_Dan, contain time series file
+        0 UTC - 0 UTC
+
+2011:
+   monthly Flux files time stamp is UTC
+   daily TS files time stamp 5 UTC - 5 UTC
+
+
+
