@@ -4,9 +4,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import mpld3 
+plt.style.use('ggplot')
 
 
-path = '../../CloudStation/LoggerNet/'
+path = 'C:/Users/Julia/work/LoggerNet/'
 datafiles=['CR1000_Table1.dat',
            'CR1000_Table2.dat',
            'CR5000_onemin.dat',
@@ -38,8 +39,7 @@ def plot_param(param):
     global df
     global units
     fig, ax = plt.subplots()
-    df[param].plot(figsize=(3,2), marker='o', ax=ax)
-    plt.xlabel('Time (UTC)')
+    df[param].plot(marker='o', ax=ax)
     plt.ylabel(units[df.columns.get_loc(param)])
     plt.title(param + ' (time in UTC)')
     mpld3.save_html(fig, './output/{p}.html'.format(p=param))
@@ -47,4 +47,4 @@ def plot_param(param):
 select_param(datafile='CR1000_Table1.dat')
 for paramw in ['TCroof_Avg', 'RHCroof', 'DnTot_Avg', 'UpTot_Avg', 'Rain_mm_3600_Tot', 'WindSpd_ms']:
     plot_param(param=paramw)
-os.system("cp -f output/* ../../web/butler/dataplots/")
+os.system("cp -f output/* C:/Users/Julia/Desktop/test_website/dataplots/")
