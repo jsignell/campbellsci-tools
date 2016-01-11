@@ -1,4 +1,4 @@
-#!/minconda/bin/python
+#!/home/jsignell/miniconda2/bin/python
 """
 Create plots for website's weekly dashboard
 
@@ -11,10 +11,12 @@ import os
 import datetime as dt
 import pandas as pd
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')  # run this before importing pyplot to allow running remotely
 import matplotlib.pyplot as plt
 import mpld3 
 
-path = 'C:/Users/Julia/work/LoggerNet/'
+path = '../../CloudStation/LoggerNet/'
 datafiles=['CR1000_Table1.dat',
            'CR1000_Table2.dat',
            'CR5000_onemin.dat',
@@ -61,7 +63,7 @@ df, units = concat_data(path, datafile='CR1000_Table1')
 for param in params:
     plot_param(param)
 try:
-    os.system("cp -f output/butler/* Z:/butler/dataplots/")
+    os.system("cp -f output/butler/* ../../web/butler/dataplots/")
 except:
     os.system("cp -f output/butler/* C:/Users/Julia/Desktop/test_website/dataplots/butler/")
     
@@ -72,11 +74,11 @@ params = ['co2_mean','h2o_Avg','Rl_downwell_Avg','Rl_upwell_Avg','Rain_1_mm_Tot'
 for param in params:
     plot_param(param)
 try:
-    os.system("cp -f output/ecs/* Z:/ecs/dataplots/")
+    os.system("cp -f output/ecs/* ../../web/ecs/dataplots/")
 except:
     os.system("cp -f output/ecs/* C:/Users/Julia/Desktop/test_website/dataplots/")
 
 try:
-    os.system("cp -f {i}/logger_status.html Z:/dataplots/".format(i=path))
+    os.system("cp -f {i}/logger_status.html ../../web/dataplots/".format(i=path))
 except:
     pass

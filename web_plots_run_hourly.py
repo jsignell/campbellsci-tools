@@ -1,4 +1,4 @@
-#!/minconda/bin/python
+#!/home/jsignell/miniconda2/bin/python
 """
 Create plots for website's weekly dashboard
 
@@ -11,10 +11,12 @@ import os
 import datetime as dt
 import pandas as pd
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')  # run this before importing pyplot to allow running remotely
 import matplotlib.pyplot as plt
 import mpld3 
 
-path = 'C:/Users/Julia/work/LoggerNet/'
+path = '../../CloudStation/LoggerNet/'
 datafiles=['CR1000_Table1.dat',
            'CR1000_Table2.dat',
            'CR5000_onemin.dat',
@@ -53,7 +55,7 @@ df, units = read_campbellsci(path, datafile='CR1000_Table1.dat')
 params = ['TCroof_Avg', 'RHCroof', 'DnTot_Avg', 'UpTot_Avg', 'Rain_mm_3_Tot', 'WindSpd_ms']
 dashboard()
 try:
-    os.system("cp -f output/butler/dashboard.html Z:/butler/dataplots/")
+    os.system("cp -f output/butler/dashboard.html ../../web/butler/dataplots/")
 except:
     os.system("cp -f output/butler/dashboard.html C:/Users/Julia/Desktop/test_website/dataplots/butler/")
     
@@ -63,11 +65,11 @@ df, units = read_campbellsci(path, datafile='CR5000_flux.dat')
 params = ['co2_mean','h2o_Avg','Rl_downwell_Avg','Rl_upwell_Avg','Rain_1_mm_Tot','Rain_2_mm_Tot']
 dashboard()
 try:
-    os.system("cp -f output/ecs/dashboard.html Z:/ecs/dataplots/")
+    os.system("cp -f output/ecs/dashboard.html ../../web/ecs/dataplots/")
 except:
     os.system("cp -f output/ecs/dashboard.html C:/Users/Julia/Desktop/test_website/dataplots/")
 
 try:
-    os.system("cp -f {i}/logger_status.html Z:/dataplots/".format(i=path))
+    os.system("cp -f {i}/logger_status.html ../../web/dataplots/".format(i=path))
 except:
     pass
