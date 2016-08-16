@@ -68,7 +68,11 @@ class CSIFile:
     def fix_butler_tz(self):
         # This is for Butler
         df_all = self.df
-        new = df_all[:'2013-03-26 07:00'].index + pd.DateOffset(hours=5)
+        new = df_all[:'2011-03-14 00:00'].index + pd.DateOffset(hours=5)
+        new = new.append(df_all['2011-03-14 01:00':'2011-11-07 00:00'].index + pd.DateOffset(hours=4))
+        new = new.append(df_all['2011-11-07 01:00':'2012-05-24 18:00'].index + pd.DateOffset(hours=5))
+        new = new.append(df_all['2012-05-24 19:00':'2012-11-07 00:00'].index + pd.DateOffset(hours=4))
+        new = new.append(df_all['2012-11-07 01:00':'2013-03-26 07:00'].index + pd.DateOffset(hours=5))
         new = new.append(df_all['2013-03-26 08:00':'2014-01-28'].index + pd.DateOffset(hours=4))
         new = new.append(df_all['2014-01-29':'2014-06-27 05:00'].index + pd.DateOffset(hours=5))
         new = new.append(df_all['2014-06-27 06:00':'2014-12-01'].index + pd.DateOffset(hours=4))
@@ -113,8 +117,20 @@ def update(path, datafile='CR1000_Table1', out_path='../../data/butler/'):
     csi = CSIFile(path+datafile+'.dat')
     y = csi.df.index[0].year
     m = csi.df.index[0].month
+    try:
+        for f in [f for f in os.listdir(path) if datafile in f]:
+            if '_{y}_{m:02d}'.format(y=y, m=m) in f:
+                csi = concat([CSIFile(path+f), csi])
+    except:
+        pass
     if os.path.isfile(out_path+datafile+'_{y}_{m:02d}.dat'.format(y=y, m=m)):
         csi_old = CSIFile(out_path+datafile+'_{y}_{m:02d}.dat'.format(y=y, m=m))
+        csi_old.datafile = datafile
+        csi_all = concat([csi_old, csi])
+        csi_all.output_path = out_path
+        csi_all.split('monthly')
+    elif os.path.isfile(out_path+datafile+'_{y}_{m:02d}.dat'.format(y=y, m=m-1)):
+        csi_old = CSIFile(out_path+datafile+'_{y}_{m:02d}.dat'.format(y=y, m=m-1))
         csi_old.datafile = datafile
         csi_all = concat([csi_old, csi])
         csi_all.output_path = out_path
