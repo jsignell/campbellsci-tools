@@ -1,4 +1,5 @@
-#!/home/jsignell/miniconda2/bin/python
+#!/home/jsignell/miniconda2/envs/campbellsci-tools/bin/python
+
 """
 Generate storm DSD plots
 
@@ -15,10 +16,18 @@ import xarray as xr
 import matplotlib
 matplotlib.use('Agg')  # run this before importing pyplot to allow running remotely
 import matplotlib.pyplot as plt
-import mpld3 
+import mpld3
 
-data_path = '../../data/broadmead/'
-plot_path = './output/broadmead/DSD/'
+from os.path import join, dirname
+from dotenv import load_dotenv
+
+load_dotenv(join(dirname(__file__), '.env'))
+
+data_path = os.environ.get("DATA_DIR")+'broadmead/'
+plot_path = os.environ.get("PLOT_DIR")+'broadmead/DSD/'
+WEB_DIR = os.environ.get("WEB_DIR")
+web_part = "broadmead/dataplots/DSD/"
+web_path = WEB_DIR+web_part
 
 # generate DSDs for any recent storms
 cols = [u'mm062', u'mm187', u'mm312', u'mm437', u'mm562', u'mm687', u'mm812',
@@ -39,7 +48,7 @@ cmap = matplotlib.cm.get_cmap('Blues', 10)
 cmap.set_under('None')
 
 trange = pd.date_range(pd.datetime.now()-pd.DateOffset(days=30), pd.datetime.now()+pd.DateOffset(days=30), freq='1m')
-ym = zip(trange.year, trange.month)
+ym = list(zip(trange.year, trange.month))
 
 parsivel = concat([CSIFile(data_path+'CR6_SN1698_parsivel_{y}_{m:02d}.dat'.format(y=n[0], m=n[1])) for n in ym])
 csi = concat([CSIFile(data_path+'CR5000_flux_{y}_{m:02d}.dat'.format(y=n[0], m=n[1])) for n in ym])
@@ -63,8 +72,8 @@ starts = rate[rate>=thresh][1:][time_until_wet>=(pd.Timedelta(hours=dry_interval
 starts = starts[0:-1]
 ends = ends[1:]
 
-ti = [(starts.index[n]-pd.Timedelta(minutes=30), ends.index[n]+pd.Timedelta(minutes=30)) for 
-      n in range(starts.shape[0]) if 
+ti = [(starts.index[n]-pd.Timedelta(minutes=30), ends.index[n]+pd.Timedelta(minutes=30)) for
+      n in range(starts.shape[0]) if
       ends.index[n] - starts.index[n] > pd.Timedelta(hours=1)]
 
 ds = xr.open_dataset(data_path+'broadmead_dropsize.nc')
@@ -90,9 +99,22 @@ for i in range(len(ti)):
     mpld3.save_html(fig, '{o}{t}.html'.format(o=plot_path, t=ti[i][0].date()))
     if i == len(ti)-1:
         mpld3.save_html(fig, '{o}recent.html'.format(o=plot_path))
+        plt.savefig('{o}recent.png'.format(o=plot_path))
     plt.close(fig)
 
 try:
-    os.system("cp -f {o}* ../../web/{s}dataplots/DSD/".format(o=plot_path, s='broadmead/'))
+    os.system("cp -f {o}* {web}".format(o=plot_path, web=web_path))
+except:
+    pass
+
+fs = [f for f in os.listdir(web_path) if f[-5:] == ".html" and "recent" not in f]
+input_list = ' | '.join(['''<button onClick="choose_storm('{path}')"> {date}</button>'''.format(path=web_part+f, date=f[0:-5]) for f in fs])
+
+f = open("./DSD_template.html", 'a')
+f.write(input_list)
+f.close()
+try:
+    os.system("cp -f ./DSD_template.html {web}/DSD.html".format(web=WEB_DIR))
+    os.system("head -n -1 {web}/DSD.html > ./DSD_template.html".format(web=WEB_DIR))
 except:
     pass

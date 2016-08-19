@@ -1,10 +1,12 @@
-#!/home/jsignell/miniconda2/bin/python
+#!/home/jsignell/miniconda2/envs/campbellsci-tools/bin/python
 """
 Create website's weekly plots and update files for download
 
 
 Julia Signell
 2016-01-25
+
+2016-08-16: reorganized and added .env file
 """
 from csifile import *
 import os
@@ -16,27 +18,24 @@ import xarray as xr
 import matplotlib
 matplotlib.use('Agg')  # run this before importing pyplot to allow running remotely
 import matplotlib.pyplot as plt
-import mpld3 
+import mpld3
 
-loggernet_path = '../../CloudStation/LoggerNet/'
-data_path = '../../data/'
-plot_path = './output/'
 
-datafiles=['CR1000_Table1.dat',
-           'CR1000_Table2.dat',
-           'CR5000_onemin.dat',
-           'CR5000_flux.dat',
-           'CL06_CR1000_IP_Table1.dat',
-           'Wash_Strm_CR200_IP_Table1.dat',
-           'Upper WS CR200_Table1.dat'
-          ]
+from os.path import join, dirname
+from dotenv import load_dotenv
+load_dotenv(join(dirname(__file__), '.env'))
+
+LOGGERNET_DIR = os.environ.get("LOGGERNET_DIR")
+DATA_DIR = os.environ.get("DATA_DIR")
+PLOT_DIR = os.environ.get("PLOT_DIR")
+WEB_DIR = os.environ.get("WEB_DIR")
 
 def concat_data(path, datafile):
     csi_all = concat(grab(path, datafile))
-    df = csi_all.df.resample('1D', how='mean')
+    df = csi_all.df.resample('1D').mean()
     for col in df.columns:
         if col.endswith('Tot') or col.endswith('tot'):
-            df[col] = csi_all.df[col].resample('1D', how='sum')
+            df[col] = csi_all.df[col].resample('1D').sum()
     return df, csi_all.units
 
 def plot_param(df, path, param, units):
@@ -59,27 +58,22 @@ def zipdir(ziph, year):
                 ziph.write(os.path.join(f))
 
 def update_and_plot(site, d, params, y=2016):
-    update(loggernet_path, d, data_path+site)
-    df, units = concat_data(data_path+site, d)
+    update(LOGGERNET_DIR, d, DATA_DIR+site)
+    df, units = concat_data(DATA_DIR+site, d)
     cwd = os.getcwd()
-    os.chdir(data_path+site)
+    os.chdir(DATA_DIR+site)
     zipf = zipfile.ZipFile('{s}_{y}.zip'.format(s=site[0:-1], y=y), 'w', zipfile.ZIP_DEFLATED)
     zipdir(zipf, y)
     zipf.close()
     os.chdir(cwd)
     for param in params:
-        plot_param(df, plot_path+site, param, units)
-    try:
-        os.system("cp -f {o}{s}* ../../web/{s}dataplots/".format(o=plot_path, s=site))
-        os.system("cp -f {p}{s}*_{y}.zip ../../web/{s}datafiles/".format(p=data_path, s=site, d=d, y=2016))
-    except:
-        pass
+        plot_param(df, PLOT_DIR+site, param, units)
 
 def generate_nc(site):
     csi_all = concat(grab(site.data_path, site.datafiles[0]))
     csi_all.df.columns = [col.replace('(','_').replace(')','') for col in csi_all.df.columns]
-    units = dict(zip(csi_all.df.columns, csi_all.units))
-    method = dict(zip(csi_all.df.columns, csi_all.method))
+    units = dict(list(zip(csi_all.df.columns, csi_all.units)))
+    method = dict(list(zip(csi_all.df.columns, csi_all.method)))
     csi_all.df.index.name = 'time'
     csi_all.df.insert(0, 'time', csi_all.df.index)
     csi_all.df = csi_all.df.drop_duplicates(subset=['time']).drop('time', axis=1)
@@ -88,9 +82,9 @@ def generate_nc(site):
         ds[var].attrs.update({'units': units.get(var), 'method': method.get(var)})
         if ds[var].dtype == 'int64':
             ds[var].encoding.update({'dtype': np.double})
-        if site.name !='butler':
+        if site.name != b'butler' and site.name != b'broadmead_parsivel':
             ds[var].encoding.update({'chunksizes':(1000,),'zlib': True})
-    if site.name == 'broadmead':
+    if site.name == b'broadmead':
         s = ds.albedo_Avg.to_dataframe()
         s.albedo_Avg.replace(' ', np.nan, inplace=True)
         s.albedo_Avg = s.albedo_Avg.astype('float')
@@ -132,6 +126,7 @@ def generate_nc(site):
                      'Conventions': 'CF-1.6',
                      'description': site.long_name,
                      'history': 'Created {now}'.format(now= pd.datetime.now())})
+    site.name = site.name.decode('unicode_escape')
     ds.to_netcdf('{path}{f}.nc'.format(path=site.data_path, f=site.name), format='netCDF4', engine='h5netcdf')
     try:
         os.system("cp {path}{f}.nc ~/erddapData/MonitoringStations/".format(path=site.data_path, f=site.name))
@@ -147,10 +142,19 @@ update_and_plot(site, d, params)
 
 #CR5000 ECS
 site = 'broadmead/'
-d = 'CR5000_flux'
+datafiles = ['CR5000_flux', 'CR5000_onemin', 'CR6_SN1698_P_Size','CR6_SN1698_parsivel']
 params = ['Hc', 'LE_wpl','Rl_downwell_Avg','Rl_upwell_Avg','Rs_downwell_Avg','Rs_upwell_Avg',
           'co2_mean','h2o_Avg','wnd_spd','t_hmp_mean','Rain_1_mm_Tot','Rain_2_mm_Tot']
-update_and_plot(site, d, params)
+update_and_plot(site, datafiles[0], params)
+for d in datafiles[1:]:
+    update_and_plot(site, d, [])
+try:
+    os.system("cp -f {o}{s}* {web}{s}dataplots/".format(
+              o=PLOT_DIR, web=WEB_DIR, s=site))
+    os.system("cp -f {p}{s}*_{y}.zip {web}{s}datafiles/".format(
+              p=DATA_DIR, s=site, d=d, y=y, web=WEB_DIR))
+except:
+    pass
 
 #CR200 Washington
 y=2016
@@ -162,51 +166,65 @@ params_list = [['Upper_Temp_C_Avg', 'Upper_Corrected_cm_Avg'],
 prefixes = ['Upper_','Lower_','']
 for d, params, prefix in zip(datafiles, params_list, prefixes):
     try:
-        update(loggernet_path, d, data_path+site)
-        zipf = zipfile.ZipFile(data_path+site+'{s}_{y}.zip'.format(s=site[0:-1], y=y), 'w', zipfile.ZIP_DEFLATED)
-        zipdir(data_path+site, zipf, y)
+        update(LOGGERNET_DIR, d, DATA_DIR+site)
+        zipf = zipfile.ZipFile(DATA_DIR+site+'{s}_{y}.zip'.format(s=site[0:-1], y=y), 'w', zipfile.ZIP_DEFLATED)
+        zipdir(DATA_DIR+site, zipf, y)
         zipf.close()
     except:
         pass
-    df, units = concat_data(data_path+site, d)
+    df, units = concat_data(DATA_DIR+site, d)
     df = df.add_prefix(prefix)
     for param in params:
-        plot_param(df, plot_path+site, param, units)
-    try:
-        os.system("cp -f {o}{s}* ../../web/{s}dataplots/".format(o=plot_path, s=site))
-        os.system("cp -f {p}{s}*_{y}.zip ../../web/{s}datafiles/".format(p=data_path, s=site, d=d, y=y))
-    except:
-        pass
+        plot_param(df, PLOT_DIR+site, param, units)
+try:
+    os.system("cp -f {o}{s}* {web}{s}dataplots/".format(
+              o=PLOT_DIR, web=WEB_DIR, s=site))
+    os.system("cp -f {p}{s}*_{y}.zip {web}{s}datafiles/".format(
+              p=DATA_DIR, web=WEB_DIR, s=site, d=d, y=y))
+except:
+    pass
 
-    import os
-
-# generate netcdf files
-path = '../../data/'
-sites= {'broadmead': {'data_path': path+'broadmead/',
-                      'datafiles': ['CR5000_flux', 'CR5000_onemin'],
-                      'lat': 40.34637, 
+# The b in front of strings makes sure that these are writable to netCDF
+sites= {b'broadmead': {'data_path': DATA_DIR+'broadmead/',
+                      'datafiles': ['CR5000_flux'],
+                      'lat': 40.34637,
                       'lon':-74.64347,
                       'long_name': 'Broadmead Eddy Covariance Station'},
-        'butler': {'data_path': path+'butler/',
+        b'butler': {'data_path': DATA_DIR+'butler/',
                    'datafiles': ['CR1000_Table1', 'CR1000_Table2'],
                    'lat': 40.34421,
                    'lon':-74.65586,
                    'long_name': 'Butler Green Roof Station'},
-        'washington_up': {'data_path': path+'washington/',
+        b'washington_up': {'data_path': DATA_DIR+'washington/',
                           'datafiles': ['Upper WS CR200_Table1'],
                           'lat': 40.3426,
                           'lon':-74.6495,
                           'long_name': 'Washington Upstream Station'},
-        'washington_down': {'data_path': path+'washington/',
+        b'washington_down': {'data_path': DATA_DIR+'washington/',
                             'datafiles': ['Wash_Strm_CR200_IP_Table1'],
-                            'lat': 40.34202, 
+                            'lat': 40.34202,
                             'lon':-74.64883,
                             'long_name': 'Washington Downstream Station'},
-        'washington_lake': {'data_path': path+'washington/',
+        b'washington_lake': {'data_path': DATA_DIR+'washington/',
                            'datafiles': ['CL06_CR1000_IP_Table1'],
                            'lat': 40.34193,
                            'lon':-74.64795,
-                           'long_name': 'Washington Stream Met Station'},        
+                           'long_name': 'Washington Stream Met Station'},
+        b'broadmead_dropsize': {'data_path': DATA_DIR+'broadmead/',
+                      'datafiles': ['CR6_SN1698_P_Size'],
+                      'lat': 40.34637,
+                      'lon':-74.64347,
+                      'long_name': 'Broadmead Eddy Covariance Station Disdrometer'},
+        b'broadmead_parsivel': {'data_path': DATA_DIR+'broadmead/',
+                      'datafiles': ['CR6_SN1698_parsivel'],
+                      'lat': 40.34637,
+                      'lon':-74.64347,
+                      'long_name': 'Broadmead Eddy Covariance Station Disdrometer'},
+        b'broadmead_1min': {'data_path': DATA_DIR+'broadmead/',
+                      'datafiles': ['CR5000_onemin'],
+                      'lat': 40.34637,
+                      'lon':-74.64347,
+                      'long_name': 'Broadmead Eddy Covariance Station'}
        }
 
 sites_df = pd.DataFrame(sites)

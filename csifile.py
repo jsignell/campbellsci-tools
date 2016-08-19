@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 class CSIFile:
-    
+
     def __init__(self, path=None, df=None):
         if path is not None:
             self.path = path
@@ -27,7 +27,7 @@ class CSIFile:
         self.units = self.UnitsLine.strip('\r\n').replace('"','').split(',')[1:]
         self.method = self.MethodLine.strip('\r\n').replace('"','').split(',')[1:]
         self.df = df
-    
+
     def split(self, how='yearly'):
         out_file = '{o}{d}'.format(o=self.output_path, d=self.datafile) + '_{date}.dat'
         if how == 'daily':
@@ -57,14 +57,14 @@ class CSIFile:
         f.write(self.header)
         f.close()
         df.to_csv(out_file, mode='a', header=False, index=True)
-        
+
     def fix_broadmead_tz(self):
         df_all = self.df
         new = df_all[:'2008-06-13 00:00'].index
         new = new.append(df_all['2008-06-13 00:00':'2008-11-03 00:00'].index + pd.DateOffset(hours=5))
         new = new.append(df_all['2008-11-03 00:00':].index)
         self.df = df_all.set_index(new)
-        
+
     def fix_butler_tz(self):
         # This is for Butler
         df_all = self.df
@@ -78,16 +78,16 @@ class CSIFile:
         new = new.append(df_all['2014-06-27 06:00':'2014-12-01'].index + pd.DateOffset(hours=4))
         new = new.append(df_all['2014-12-02':'2015-05-09 04:00'].index + pd.DateOffset(hours=5))
         new = new.append(df_all['2015-05-09 05:00':'2015-10-14 14:00'].index + pd.DateOffset(hours=4))
-        new = new.append(df_all['2015-10-14 15:00':].index) 
+        new = new.append(df_all['2015-10-14 15:00':].index)
         self.df = df_all.set_index(new)
-    
+
     def fix_washington_tz(self):
         df_all = self.df
         new = df_all[:'2015-10-14 14:00'].index + pd.DateOffset(hours=4)
         new = new.append(df_all['2015-10-14 15:00':].index)
         self.df = df_all.set_index(new)
 
-def grab(path, datafile='CR1000_Table1'):
+def grab(path, datafile):
     csi_all = []
     for f in os.listdir(path):
         if datafile in f and f.endswith('.dat'):
@@ -101,7 +101,8 @@ def concat(csi_list):
     for csi in csi_list:
         df_all = pd.concat((df_all,csi.df))
     df_all = df_all.sort_index()
-    df_all = df_all.drop_duplicates()
+    #df_all = df_all.drop_duplicates()
+    df_all = df_all.groupby(df_all.index).first()
     for csi in csi_list:
         if set(df_all.columns) <= set(csi.df.columns):
             csi_all = CSIFile(df=df_all[csi.df.columns])
@@ -113,7 +114,7 @@ def concat(csi_list):
             return csi_all
     return CSIFile(df_all)
 
-def update(path, datafile='CR1000_Table1', out_path='../../data/butler/'):
+def update(path, datafile, out_path):
     csi = CSIFile(path+datafile+'.dat')
     y = csi.df.index[0].year
     m = csi.df.index[0].month
@@ -123,21 +124,21 @@ def update(path, datafile='CR1000_Table1', out_path='../../data/butler/'):
                 csi = concat([CSIFile(path+f), csi])
     except:
         pass
+
+    # if the current month exists
     if os.path.isfile(out_path+datafile+'_{y}_{m:02d}.dat'.format(y=y, m=m)):
         csi_old = CSIFile(out_path+datafile+'_{y}_{m:02d}.dat'.format(y=y, m=m))
-        csi_old.datafile = datafile
-        csi_all = concat([csi_old, csi])
-        csi_all.output_path = out_path
-        csi_all.split('monthly')
+        split_arg = 'monthly'
+    # if the last month exists
     elif os.path.isfile(out_path+datafile+'_{y}_{m:02d}.dat'.format(y=y, m=m-1)):
         csi_old = CSIFile(out_path+datafile+'_{y}_{m:02d}.dat'.format(y=y, m=m-1))
-        csi_old.datafile = datafile
-        csi_all = concat([csi_old, csi])
-        csi_all.output_path = out_path
-        csi_all.split('monthly')
+        split_arg = 'monthly'
+    # if the current year exists
     else:
         csi_old = CSIFile(out_path+datafile+'_{y}.dat'.format(y=y))
-        csi_old.datafile = datafile
-        csi_all = concat([csi_old, csi])
-        csi_all.output_path = out_path
-        csi_all.split('yearly')
+        split_arg = 'yearly'
+
+    csi_old.datafile = datafile
+    csi_all = concat([csi_old, csi])
+    csi_all.output_path = out_path
+    csi_all.split(split_arg)
