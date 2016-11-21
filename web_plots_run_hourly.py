@@ -144,7 +144,7 @@ for site, datafiles in sites.items():
                 df = df.add_prefix('Lower_')
         dashboard('{out}{site}/'.format(out=PLOT_DIR, site=site), params)
     try:
-        os.system("cp -f {out}{site}/* {web}{site}/dataplots/".format(
+        os.system("cp -f {out}{site}/*week.html {web}{site}/dataplots/".format(
                   out=PLOT_DIR, site=site, web=WEB_DIR))
     except:
         pass

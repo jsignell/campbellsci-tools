@@ -142,7 +142,7 @@ update_and_plot(site, d, params)
 
 #CR5000 ECS
 site = 'broadmead/'
-datafiles = ['CR5000_flux', 'CR5000_onemin', 'CR6_SN1698_P_Size','CR6_SN1698_parsivel']
+datafiles = ['CR5000_flux', 'CR5000_onemin', 'CR6_SN1698_P_Size','CR6_SN1698_parsivel', 'CR6_SN1698_P_Vel']
 params = ['Hc', 'LE_wpl','Rl_downwell_Avg','Rl_upwell_Avg','Rs_downwell_Avg','Rs_upwell_Avg',
           'co2_mean','h2o_Avg','wnd_spd','t_hmp_mean','Rain_1_mm_Tot','Rain_2_mm_Tot']
 update_and_plot(site, datafiles[0], params)
@@ -212,6 +212,11 @@ sites= {b'broadmead': {'data_path': DATA_DIR+'broadmead/',
                            'long_name': 'Washington Stream Met Station'},
         b'broadmead_dropsize': {'data_path': DATA_DIR+'broadmead/',
                       'datafiles': ['CR6_SN1698_P_Size'],
+                      'lat': 40.34637,
+                      'lon':-74.64347,
+                      'long_name': 'Broadmead Eddy Covariance Station Disdrometer'},
+        b'broadmead_velocity': {'data_path': DATA_DIR+'broadmead/',
+                      'datafiles': ['CR6_SN1698_P_Vel'],
                       'lat': 40.34637,
                       'lon':-74.64347,
                       'long_name': 'Broadmead Eddy Covariance Station Disdrometer'},

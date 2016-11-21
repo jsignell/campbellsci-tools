@@ -10,10 +10,10 @@ import pandas as pd
 import urllib
 
 if sys.version_info[0] < 3:
-    from StringIO import StringIO
+    from StringIO.StringIO as IO
     from urllib import urlopen
 else:
-    from io import StringIO
+    from io.BytesIO as IO
     from urllib.request import urlopen
 
 def send_email(contents, subject='Web Services', to='jsignell@gmail.com'):
@@ -56,7 +56,8 @@ for site, url in sites.items():
                 content = content+"docker daemon is not running\n"
                 docker = False
             if docker:
-                df = pd.read_csv(StringIO(output), delim_whitespace=True)
+                df = pd.read_csv(IO(output), delim_whitespace=True)
+                print(df.columns)
                 if site not in df.NAMES.values:
                     # attempt to restart docker service
                     os.system("cd /home/jsignell/{site}; "
